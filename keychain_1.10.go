@@ -1,4 +1,4 @@
-// +build darwin
+// +build darwin,!ios
 // +build go1.10
 
 package keychain
@@ -17,7 +17,21 @@ import "C"
 import "fmt"
 
 // Error defines keychain errors
-type Error int
+// For more about Apple security framework results codes, please refer to
+// https://developer.apple.com/documentation/security/1542001-security_framework_result_codes?language=objc
+type Error C.OSStatus
+
+func checkError(errCode C.OSStatus) error {
+	if errCode == C.errSecSuccess {
+		return nil
+	}
+	return Error(errCode)
+}
+
+// As only use the keychain in OS X, use SecCopyErrorMessageString instead of deriving manually.
+func (k Error) Error() string {
+	return CFStringToString(C.SecCopyErrorMessageString(C.OSStatus(k), nil))
+}
 
 var (
 	// ErrorUnimplemented corresponds to errSecUnimplemented result code
@@ -40,34 +54,9 @@ var (
 	ErrorDecode = Error(C.errSecDecode)
 	// ErrorNoSuchKeychain corresponds to errSecNoSuchKeychain result code
 	ErrorNoSuchKeychain = Error(C.errSecNoSuchKeychain)
+	// ErrorNoAccessForItem corresponds to errSecNoAccessForItem result code
+	ErrorNoAccessForItem = Error(C.errSecNoAccessForItem)
 )
-
-func checkError(errCode C.OSStatus) error {
-	if errCode == C.errSecSuccess {
-		return nil
-	}
-	return Error(errCode)
-}
-
-func (k Error) Error() string {
-	var msg string
-	// SecCopyErrorMessageString is only available on OSX, so derive manually.
-	switch k {
-	case ErrorItemNotFound:
-		msg = fmt.Sprintf("Item not found (%d)", k)
-	case ErrorDuplicateItem:
-		msg = fmt.Sprintf("Duplicate item (%d)", k)
-	case ErrorParam:
-		msg = fmt.Sprintf("One or more parameters passed to the function were not valid (%d)", k)
-	case ErrorNoSuchKeychain:
-		msg = fmt.Sprintf("No such keychain (%d)", k)
-	case -25243:
-		msg = fmt.Sprintf("No access for item (%d)", k)
-	default:
-		msg = fmt.Sprintf("Keychain Error (%d)", k)
-	}
-	return msg
-}
 
 // SecClass is the items class code
 type SecClass int
@@ -342,7 +331,7 @@ func QueryItemRef(item Item) (C.CFTypeRef, error) {
 
 	var resultsRef C.CFTypeRef
 	errCode := C.SecItemCopyMatching(cfDict, &resultsRef)
-	if Error(errCode) == ErrorItemNotFound {
+	if errCode == C.errSecItemNotFound {
 		return 0, nil
 	}
 	err = checkError(errCode)
