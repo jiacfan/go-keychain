@@ -10,10 +10,6 @@ package keychain
 #include <Security/Security.h>
 */
 import "C"
-import (
-	"os"
-	"unsafe"
-)
 
 // AccessibleKey is key for kSecAttrAccessible
 var AccessibleKey = attrKey(C.CFTypeRef(C.kSecAttrAccessible))
@@ -29,244 +25,246 @@ var accessibleTypeRef = map[Accessible]C.CFTypeRef{
 	//AccessibleWhenPasscodeSetThisDeviceOnly:  C.CFTypeRef(C.kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly),
 }
 
-var (
-	// AccessKey is key for kSecAttrAccess
-	AccessKey = attrKey(C.CFTypeRef(C.kSecAttrAccess))
-)
+// Following code are not used currently in slim version.
 
-// createAccess creates a SecAccessRef as CFTypeRef.
-// The returned SecAccessRef, if non-nil, must be released via CFRelease.
-func createAccess(label string, trustedApplications []string) (C.CFTypeRef, error) {
-	var err error
-	var labelRef C.CFStringRef
-	if labelRef, err = StringToCFString(label); err != nil {
-		return 0, err
-	}
-	defer C.CFRelease(C.CFTypeRef(labelRef))
+// var (
+// 	// AccessKey is key for kSecAttrAccess
+// 	AccessKey = attrKey(C.CFTypeRef(C.kSecAttrAccess))
+// )
 
-	var trustedApplicationsArray C.CFArrayRef
-	if trustedApplications != nil {
-		if len(trustedApplications) > 0 {
-			// Always prepend with empty string which signifies that we
-			// include a NULL application, which means ourselves.
-			trustedApplications = append([]string{""}, trustedApplications...)
-		}
+// // createAccess creates a SecAccessRef as CFTypeRef.
+// // The returned SecAccessRef, if non-nil, must be released via CFRelease.
+// func createAccess(label string, trustedApplications []string) (C.CFTypeRef, error) {
+// 	var err error
+// 	var labelRef C.CFStringRef
+// 	if labelRef, err = StringToCFString(label); err != nil {
+// 		return 0, err
+// 	}
+// 	defer C.CFRelease(C.CFTypeRef(labelRef))
 
-		var trustedApplicationsRefs []C.CFTypeRef
-		for _, trustedApplication := range trustedApplications {
-			trustedApplicationRef, createErr := createTrustedApplication(trustedApplication)
-			if createErr != nil {
-				return 0, createErr
-			}
-			defer C.CFRelease(C.CFTypeRef(trustedApplicationRef))
-			trustedApplicationsRefs = append(trustedApplicationsRefs, trustedApplicationRef)
-		}
+// 	var trustedApplicationsArray C.CFArrayRef
+// 	if trustedApplications != nil {
+// 		if len(trustedApplications) > 0 {
+// 			// Always prepend with empty string which signifies that we
+// 			// include a NULL application, which means ourselves.
+// 			trustedApplications = append([]string{""}, trustedApplications...)
+// 		}
 
-		trustedApplicationsArray = ArrayToCFArray(trustedApplicationsRefs)
-		defer C.CFRelease(C.CFTypeRef(trustedApplicationsArray))
-	}
+// 		var trustedApplicationsRefs []C.CFTypeRef
+// 		for _, trustedApplication := range trustedApplications {
+// 			trustedApplicationRef, createErr := createTrustedApplication(trustedApplication)
+// 			if createErr != nil {
+// 				return 0, createErr
+// 			}
+// 			defer C.CFRelease(C.CFTypeRef(trustedApplicationRef))
+// 			trustedApplicationsRefs = append(trustedApplicationsRefs, trustedApplicationRef)
+// 		}
 
-	var access C.SecAccessRef
-	errCode := C.SecAccessCreate(labelRef, trustedApplicationsArray, &access)
-	err = checkError(errCode)
-	if err != nil {
-		return 0, err
-	}
+// 		trustedApplicationsArray = ArrayToCFArray(trustedApplicationsRefs)
+// 		defer C.CFRelease(C.CFTypeRef(trustedApplicationsArray))
+// 	}
 
-	return C.CFTypeRef(access), nil
-}
+// 	var access C.SecAccessRef
+// 	errCode := C.SecAccessCreate(labelRef, trustedApplicationsArray, &access)
+// 	err = checkError(errCode)
+// 	if err != nil {
+// 		return 0, err
+// 	}
 
-// createTrustedApplication creates a SecTrustedApplicationRef as a CFTypeRef.
-// The returned SecTrustedApplicationRef, if non-nil, must be released via CFRelease.
-func createTrustedApplication(trustedApplication string) (C.CFTypeRef, error) {
-	var trustedApplicationCStr *C.char
-	if trustedApplication != "" {
-		trustedApplicationCStr = C.CString(trustedApplication)
-		defer C.free(unsafe.Pointer(trustedApplicationCStr))
-	}
+// 	return C.CFTypeRef(access), nil
+// }
 
-	var trustedApplicationRef C.SecTrustedApplicationRef
-	errCode := C.SecTrustedApplicationCreateFromPath(trustedApplicationCStr, &trustedApplicationRef)
-	err := checkError(errCode)
-	if err != nil {
-		return 0, err
-	}
+// // createTrustedApplication creates a SecTrustedApplicationRef as a CFTypeRef.
+// // The returned SecTrustedApplicationRef, if non-nil, must be released via CFRelease.
+// func createTrustedApplication(trustedApplication string) (C.CFTypeRef, error) {
+// 	var trustedApplicationCStr *C.char
+// 	if trustedApplication != "" {
+// 		trustedApplicationCStr = C.CString(trustedApplication)
+// 		defer C.free(unsafe.Pointer(trustedApplicationCStr))
+// 	}
 
-	return C.CFTypeRef(trustedApplicationRef), nil
-}
+// 	var trustedApplicationRef C.SecTrustedApplicationRef
+// 	errCode := C.SecTrustedApplicationCreateFromPath(trustedApplicationCStr, &trustedApplicationRef)
+// 	err := checkError(errCode)
+// 	if err != nil {
+// 		return 0, err
+// 	}
 
-// Access defines whats applications can use the keychain item
-type Access struct {
-	Label               string
-	TrustedApplications []string
-}
+// 	return C.CFTypeRef(trustedApplicationRef), nil
+// }
 
-// Convert converts Access to CFTypeRef.
-// The returned CFTypeRef, if non-nil, must be released via CFRelease.
-func (a Access) Convert() (C.CFTypeRef, error) {
-	return createAccess(a.Label, a.TrustedApplications)
-}
+// // Access defines whats applications can use the keychain item
+// type Access struct {
+// 	Label               string
+// 	TrustedApplications []string
+// }
 
-// SetAccess sets Access on Item
-func (k *Item) SetAccess(a *Access) {
-	if a != nil {
-		k.attr[AccessKey] = a
-	} else {
-		delete(k.attr, AccessKey)
-	}
-}
+// // Convert converts Access to CFTypeRef.
+// // The returned CFTypeRef, if non-nil, must be released via CFRelease.
+// func (a Access) Convert() (C.CFTypeRef, error) {
+// 	return createAccess(a.Label, a.TrustedApplications)
+// }
 
-// DeleteItemRef deletes a keychain item reference.
-func DeleteItemRef(ref C.CFTypeRef) error {
-	errCode := C.SecKeychainItemDelete(C.SecKeychainItemRef(ref))
-	return checkError(errCode)
-}
+// // SetAccess sets Access on Item
+// func (k *Item) SetAccess(a *Access) {
+// 	if a != nil {
+// 		k.attr[AccessKey] = a
+// 	} else {
+// 		delete(k.attr, AccessKey)
+// 	}
+// }
 
-var (
-	// KeychainKey is key for kSecUseKeychain
-	KeychainKey = attrKey(C.CFTypeRef(C.kSecUseKeychain))
-	// MatchSearchListKey is key for kSecMatchSearchList
-	MatchSearchListKey = attrKey(C.CFTypeRef(C.kSecMatchSearchList))
-)
+// // DeleteItemRef deletes a keychain item reference.
+// func DeleteItemRef(ref C.CFTypeRef) error {
+// 	errCode := C.SecKeychainItemDelete(C.SecKeychainItemRef(ref))
+// 	return checkError(errCode)
+// }
 
-// Keychain represents the path to a specific OSX keychain
-type Keychain struct {
-	path string
-}
+// var (
+// 	// KeychainKey is key for kSecUseKeychain
+// 	KeychainKey = attrKey(C.CFTypeRef(C.kSecUseKeychain))
+// 	// MatchSearchListKey is key for kSecMatchSearchList
+// 	MatchSearchListKey = attrKey(C.CFTypeRef(C.kSecMatchSearchList))
+// )
 
-// NewKeychain creates a new keychain file with a password
-func NewKeychain(path string, password string) (Keychain, error) {
-	return newKeychain(path, password, false)
-}
+// // Keychain represents the path to a specific OSX keychain
+// type Keychain struct {
+// 	path string
+// }
 
-// NewKeychainWithPrompt creates a new Keychain and prompts user for password
-func NewKeychainWithPrompt(path string) (Keychain, error) {
-	return newKeychain(path, "", true)
-}
+// // NewKeychain creates a new keychain file with a password
+// func NewKeychain(path string, password string) (Keychain, error) {
+// 	return newKeychain(path, password, false)
+// }
 
-func newKeychain(path, password string, promptUser bool) (Keychain, error) {
-	pathRef := C.CString(path)
-	defer C.free(unsafe.Pointer(pathRef))
+// // NewKeychainWithPrompt creates a new Keychain and prompts user for password
+// func NewKeychainWithPrompt(path string) (Keychain, error) {
+// 	return newKeychain(path, "", true)
+// }
 
-	var errCode C.OSStatus
-	var kref C.SecKeychainRef
+// func newKeychain(path, password string, promptUser bool) (Keychain, error) {
+// 	pathRef := C.CString(path)
+// 	defer C.free(unsafe.Pointer(pathRef))
 
-	if promptUser {
-		errCode = C.SecKeychainCreate(pathRef, C.UInt32(0), nil, C.Boolean(1), 0, &kref)
-	} else {
-		passwordRef := C.CString(password)
-		defer C.free(unsafe.Pointer(passwordRef))
-		errCode = C.SecKeychainCreate(pathRef, C.UInt32(len(password)), unsafe.Pointer(passwordRef), C.Boolean(0), 0, &kref)
-	}
+// 	var errCode C.OSStatus
+// 	var kref C.SecKeychainRef
 
-	if err := checkError(errCode); err != nil {
-		return Keychain{}, err
-	}
+// 	if promptUser {
+// 		errCode = C.SecKeychainCreate(pathRef, C.UInt32(0), nil, C.Boolean(1), 0, &kref)
+// 	} else {
+// 		passwordRef := C.CString(password)
+// 		defer C.free(unsafe.Pointer(passwordRef))
+// 		errCode = C.SecKeychainCreate(pathRef, C.UInt32(len(password)), unsafe.Pointer(passwordRef), C.Boolean(0), 0, &kref)
+// 	}
 
-	// TODO: Without passing in kref I get 'One or more parameters passed to the function were not valid (-50)'
-	defer Release(C.CFTypeRef(kref))
+// 	if err := checkError(errCode); err != nil {
+// 		return Keychain{}, err
+// 	}
 
-	return Keychain{
-		path: path,
-	}, nil
-}
+// 	// TODO: Without passing in kref I get 'One or more parameters passed to the function were not valid (-50)'
+// 	defer Release(C.CFTypeRef(kref))
 
-// NewWithPath to use an existing keychain
-func NewWithPath(path string) Keychain {
-	return Keychain{
-		path: path,
-	}
-}
+// 	return Keychain{
+// 		path: path,
+// 	}, nil
+// }
 
-// Status returns the status of the keychain
-func (kc Keychain) Status() error {
-	// returns no error even if it doesn't exist
-	kref, err := openKeychainRef(kc.path)
-	if err != nil {
-		return err
-	}
-	defer C.CFRelease(C.CFTypeRef(kref))
+// // NewWithPath to use an existing keychain
+// func NewWithPath(path string) Keychain {
+// 	return Keychain{
+// 		path: path,
+// 	}
+// }
 
-	var status C.SecKeychainStatus
-	return checkError(C.SecKeychainGetStatus(kref, &status))
-}
+// // Status returns the status of the keychain
+// func (kc Keychain) Status() error {
+// 	// returns no error even if it doesn't exist
+// 	kref, err := openKeychainRef(kc.path)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer C.CFRelease(C.CFTypeRef(kref))
 
-// The returned SecKeychainRef, if non-nil, must be released via CFRelease.
-func openKeychainRef(path string) (C.SecKeychainRef, error) {
-	pathName := C.CString(path)
-	defer C.free(unsafe.Pointer(pathName))
+// 	var status C.SecKeychainStatus
+// 	return checkError(C.SecKeychainGetStatus(kref, &status))
+// }
 
-	var kref C.SecKeychainRef
-	if err := checkError(C.SecKeychainOpen(pathName, &kref)); err != nil {
-		return 0, err
-	}
+// // The returned SecKeychainRef, if non-nil, must be released via CFRelease.
+// func openKeychainRef(path string) (C.SecKeychainRef, error) {
+// 	pathName := C.CString(path)
+// 	defer C.free(unsafe.Pointer(pathName))
 
-	return kref, nil
-}
+// 	var kref C.SecKeychainRef
+// 	if err := checkError(C.SecKeychainOpen(pathName, &kref)); err != nil {
+// 		return 0, err
+// 	}
 
-// UnlockAtPath unlocks keychain at path
-func UnlockAtPath(path string, password string) error {
-	kref, err := openKeychainRef(path)
-	defer Release(C.CFTypeRef(kref))
-	if err != nil {
-		return err
-	}
-	passwordRef := C.CString(password)
-	defer C.free(unsafe.Pointer(passwordRef))
-	return checkError(C.SecKeychainUnlock(kref, C.UInt32(len(password)), unsafe.Pointer(passwordRef), C.Boolean(1)))
-}
+// 	return kref, nil
+// }
 
-// LockAtPath locks keychain at path
-func LockAtPath(path string) error {
-	kref, err := openKeychainRef(path)
-	defer Release(C.CFTypeRef(kref))
-	if err != nil {
-		return err
-	}
-	return checkError(C.SecKeychainLock(kref))
-}
+// // UnlockAtPath unlocks keychain at path
+// func UnlockAtPath(path string, password string) error {
+// 	kref, err := openKeychainRef(path)
+// 	defer Release(C.CFTypeRef(kref))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	passwordRef := C.CString(password)
+// 	defer C.free(unsafe.Pointer(passwordRef))
+// 	return checkError(C.SecKeychainUnlock(kref, C.UInt32(len(password)), unsafe.Pointer(passwordRef), C.Boolean(1)))
+// }
 
-// Delete the Keychain
-func (kc *Keychain) Delete() error {
-	return os.Remove(kc.path)
-}
+// // LockAtPath locks keychain at path
+// func LockAtPath(path string) error {
+// 	kref, err := openKeychainRef(path)
+// 	defer Release(C.CFTypeRef(kref))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return checkError(C.SecKeychainLock(kref))
+// }
 
-// Convert Keychain to CFTypeRef.
-// The returned CFTypeRef, if non-nil, must be released via CFRelease.
-func (kc Keychain) Convert() (C.CFTypeRef, error) {
-	keyRef, err := openKeychainRef(kc.path)
-	return C.CFTypeRef(keyRef), err
-}
+// // Delete the Keychain
+// func (kc *Keychain) Delete() error {
+// 	return os.Remove(kc.path)
+// }
 
-type keychainArray []Keychain
+// // Convert Keychain to CFTypeRef.
+// // The returned CFTypeRef, if non-nil, must be released via CFRelease.
+// func (kc Keychain) Convert() (C.CFTypeRef, error) {
+// 	keyRef, err := openKeychainRef(kc.path)
+// 	return C.CFTypeRef(keyRef), err
+// }
 
-// Convert the keychainArray to a CFTypeRef.
-// The returned CFTypeRef, if non-nil, must be released via CFRelease.
-func (ka keychainArray) Convert() (C.CFTypeRef, error) {
-	var refs = make([]C.CFTypeRef, len(ka))
-	var err error
+// type keychainArray []Keychain
 
-	for idx, kc := range ka {
-		if refs[idx], err = kc.Convert(); err != nil {
-			// If we error trying to convert lets release any we converted before
-			for _, ref := range refs {
-				if ref != 0 {
-					Release(ref)
-				}
-			}
-			return 0, err
-		}
-	}
+// // Convert the keychainArray to a CFTypeRef.
+// // The returned CFTypeRef, if non-nil, must be released via CFRelease.
+// func (ka keychainArray) Convert() (C.CFTypeRef, error) {
+// 	var refs = make([]C.CFTypeRef, len(ka))
+// 	var err error
 
-	return C.CFTypeRef(ArrayToCFArray(refs)), nil
-}
+// 	for idx, kc := range ka {
+// 		if refs[idx], err = kc.Convert(); err != nil {
+// 			// If we error trying to convert lets release any we converted before
+// 			for _, ref := range refs {
+// 				if ref != 0 {
+// 					Release(ref)
+// 				}
+// 			}
+// 			return 0, err
+// 		}
+// 	}
 
-// SetMatchSearchList sets match type on keychains
-func (k *Item) SetMatchSearchList(karr ...Keychain) {
-	k.attr[MatchSearchListKey] = keychainArray(karr)
-}
+// 	return C.CFTypeRef(ArrayToCFArray(refs)), nil
+// }
 
-// UseKeychain tells item to use the specified Keychain
-func (k *Item) UseKeychain(kc Keychain) {
-	k.attr[KeychainKey] = kc
-}
+// // SetMatchSearchList sets match type on keychains
+// func (k *Item) SetMatchSearchList(karr ...Keychain) {
+// 	k.attr[MatchSearchListKey] = keychainArray(karr)
+// }
+
+// // UseKeychain tells item to use the specified Keychain
+// func (k *Item) UseKeychain(kc Keychain) {
+// 	k.attr[KeychainKey] = kc
+// }

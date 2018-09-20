@@ -3,65 +3,63 @@
 package keychain
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
-	"time"
 )
 
-func TestAccess(t *testing.T) {
-	var err error
+// Commented tests for unused methods to limit support in slim version.
 
-	service, account, label, accessGroup, password := "TestAccess", "test2", "A label", "", "toomanysecrets2"
-	item := NewGenericPassword(service, account, label, []byte(password), accessGroup)
-	defer func() { _ = DeleteItem(item) }()
+// func TestAccess(t *testing.T) {
+// 	var err error
 
-	trustedApplications := []string{"/Applications/Mail.app"}
-	item.SetAccess(&Access{Label: "Mail", TrustedApplications: trustedApplications})
-	err = AddItem(item)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	service, account, label, accessGroup, password := "TestAccess", "test2", "A label", "", "toomanysecrets2"
+// 	item := NewGenericPassword(service, account, label, []byte(password), accessGroup)
+// 	defer func() { _ = DeleteItem(item) }()
 
-	_, err = GetGenericPassword(service, account, label, accessGroup)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	trustedApplications := []string{"/Applications/Mail.app"}
+// 	item.SetAccess(&Access{Label: "Mail", TrustedApplications: trustedApplications})
+// 	err = AddItem(item)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-func TestAccessWithImpliedSelf(t *testing.T) {
-	var err error
+// 	_, err = GetGenericPassword(service, account, label, accessGroup)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-	service, account, label, accessGroup, password := "TestAccess", "test2", "A label", "", "toomanysecrets2"
-	item := NewGenericPassword(service, account, label, []byte(password), accessGroup)
-	defer func() { _ = DeleteItem(item) }()
+// func TestAccessWithImpliedSelf(t *testing.T) {
+// 	var err error
 
-	item.SetAccess(&Access{Label: "Self", TrustedApplications: nil})
-	err = AddItem(item)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	service, account, label, accessGroup, password := "TestAccess", "test2", "A label", "", "toomanysecrets2"
+// 	item := NewGenericPassword(service, account, label, []byte(password), accessGroup)
+// 	defer func() { _ = DeleteItem(item) }()
 
-	_, err = GetGenericPassword(service, account, label, accessGroup)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	item.SetAccess(&Access{Label: "Self", TrustedApplications: nil})
+// 	err = AddItem(item)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-func TestAccessWithoutTrust(t *testing.T) {
-	var err error
+// 	_, err = GetGenericPassword(service, account, label, accessGroup)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
-	item := NewGenericPassword("TestAccess", "test2", "A label", []byte("toomanysecrets2"), "")
-	defer func() { _ = DeleteItem(item) }()
+// func TestAccessWithoutTrust(t *testing.T) {
+// 	var err error
 
-	trustedApplications := []string{}
-	item.SetAccess(&Access{Label: "No Trust", TrustedApplications: trustedApplications})
-	err = AddItem(item)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	item := NewGenericPassword("TestAccess", "test2", "A label", []byte("toomanysecrets2"), "")
+// 	defer func() { _ = DeleteItem(item) }()
+
+// 	trustedApplications := []string{}
+// 	item.SetAccess(&Access{Label: "No Trust", TrustedApplications: trustedApplications})
+// 	err = AddItem(item)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
 func TestUpdateItem(t *testing.T) {
 	var err error
@@ -101,124 +99,124 @@ func TestUpdateItem(t *testing.T) {
 	}
 }
 
-func TestAddingAndQueryingNewKeychain(t *testing.T) {
-	keychainPath := tempPath(t)
-	defer func() { _ = os.Remove(keychainPath) }()
+// func TestAddingAndQueryingNewKeychain(t *testing.T) {
+// 	keychainPath := tempPath(t)
+// 	defer func() { _ = os.Remove(keychainPath) }()
 
-	service, account, label, accessGroup, password := "TestAddingAndQueryingNewKeychain", "test", "", "", "toomanysecrets"
+// 	service, account, label, accessGroup, password := "TestAddingAndQueryingNewKeychain", "test", "", "", "toomanysecrets"
 
-	k, err := NewKeychain(keychainPath, "my password")
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	k, err := NewKeychain(keychainPath, "my password")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	item := NewGenericPassword(service, account, label, []byte(password), accessGroup)
-	item.UseKeychain(k)
-	if err = AddItem(item); err != nil {
-		t.Fatal(err)
-	}
+// 	item := NewGenericPassword(service, account, label, []byte(password), accessGroup)
+// 	item.UseKeychain(k)
+// 	if err = AddItem(item); err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	query := NewItem()
-	query.SetSecClass(SecClassGenericPassword)
-	query.SetMatchSearchList(k)
-	query.SetService(service)
-	query.SetAccount(account)
-	query.SetLabel(label)
-	query.SetAccessGroup(accessGroup)
-	query.SetMatchLimit(MatchLimitOne)
-	query.SetReturnData(true)
+// 	query := NewItem()
+// 	query.SetSecClass(SecClassGenericPassword)
+// 	query.SetMatchSearchList(k)
+// 	query.SetService(service)
+// 	query.SetAccount(account)
+// 	query.SetLabel(label)
+// 	query.SetAccessGroup(accessGroup)
+// 	query.SetMatchLimit(MatchLimitOne)
+// 	query.SetReturnData(true)
 
-	results, err := QueryItem(query)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	results, err := QueryItem(query)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	if len(results) != 1 {
-		t.Fatalf("Expected 1 result, got %d", len(results))
-	} else if string(results[0].Data) != password {
-		t.Fatalf("Expected password to be %s, got %s", password, results[0].Data)
-	}
+// 	if len(results) != 1 {
+// 		t.Fatalf("Expected 1 result, got %d", len(results))
+// 	} else if string(results[0].Data) != password {
+// 		t.Fatalf("Expected password to be %s, got %s", password, results[0].Data)
+// 	}
 
-	// Search default keychain to make sure it's not there
-	queryDefault := NewItem()
-	queryDefault.SetSecClass(SecClassGenericPassword)
-	queryDefault.SetService(service)
-	queryDefault.SetMatchLimit(MatchLimitOne)
-	queryDefault.SetReturnData(true)
-	resultsDefault, err := QueryItem(queryDefault)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(resultsDefault) != 0 {
-		t.Fatalf("Expected no results")
-	}
-}
+// 	// Search default keychain to make sure it's not there
+// 	queryDefault := NewItem()
+// 	queryDefault.SetSecClass(SecClassGenericPassword)
+// 	queryDefault.SetService(service)
+// 	queryDefault.SetMatchLimit(MatchLimitOne)
+// 	queryDefault.SetReturnData(true)
+// 	resultsDefault, err := QueryItem(queryDefault)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if len(resultsDefault) != 0 {
+// 		t.Fatalf("Expected no results")
+// 	}
+// }
 
-func tempPath(t *testing.T) string {
-	temp, err := RandomID("go-keychain-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return filepath.Join(os.TempDir(), temp+".keychain")
-}
+// func tempPath(t *testing.T) string {
+// 	temp, err := RandomID("go-keychain-test-")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	return filepath.Join(os.TempDir(), temp+".keychain")
+// }
 
-func TestNewWithPath(t *testing.T) {
-	path := tempPath(t)
-	defer func() { _ = os.Remove(path) }()
-	kc, newErr := NewKeychain(path, "testkeychainpassword")
-	if newErr != nil {
-		t.Fatal(newErr)
-	}
+// func TestNewWithPath(t *testing.T) {
+// 	path := tempPath(t)
+// 	defer func() { _ = os.Remove(path) }()
+// 	kc, newErr := NewKeychain(path, "testkeychainpassword")
+// 	if newErr != nil {
+// 		t.Fatal(newErr)
+// 	}
 
-	item := NewGenericPassword("MyService2", "gabriel2", "", []byte("toomanysecrets2"), "")
-	item.UseKeychain(kc)
-	if err := AddItem(item); err != nil {
-		t.Fatal(err)
-	}
+// 	item := NewGenericPassword("MyService2", "gabriel2", "", []byte("toomanysecrets2"), "")
+// 	item.UseKeychain(kc)
+// 	if err := AddItem(item); err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	kc2 := NewWithPath(path)
+// 	kc2 := NewWithPath(path)
 
-	if lockErr := LockAtPath(path); lockErr != nil {
-		t.Fatal(lockErr)
-	}
+// 	if lockErr := LockAtPath(path); lockErr != nil {
+// 		t.Fatal(lockErr)
+// 	}
 
-	if unlockErr := UnlockAtPath(path, "testkeychainpassword"); unlockErr != nil {
-		t.Fatal(unlockErr)
-	}
+// 	if unlockErr := UnlockAtPath(path, "testkeychainpassword"); unlockErr != nil {
+// 		t.Fatal(unlockErr)
+// 	}
 
-	query := NewItem()
-	query.SetMatchSearchList(kc2)
-	query.SetService("MyService2")
-	query.SetAccount("gabriel2")
-	query.SetSecClass(SecClassGenericPassword)
-	query.SetMatchLimit(MatchLimitOne)
-	query.SetReturnData(true)
-	results, err := QueryItem(query)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(results) != 1 {
-		t.Fatalf("Should have 1 result, had %d", len(results))
-	}
-	if string(results[0].Data) != "toomanysecrets2" {
-		t.Fatalf("Invalid password: %s", results[0].Data)
-	}
-}
+// 	query := NewItem()
+// 	query.SetMatchSearchList(kc2)
+// 	query.SetService("MyService2")
+// 	query.SetAccount("gabriel2")
+// 	query.SetSecClass(SecClassGenericPassword)
+// 	query.SetMatchLimit(MatchLimitOne)
+// 	query.SetReturnData(true)
+// 	results, err := QueryItem(query)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if len(results) != 1 {
+// 		t.Fatalf("Should have 1 result, had %d", len(results))
+// 	}
+// 	if string(results[0].Data) != "toomanysecrets2" {
+// 		t.Fatalf("Invalid password: %s", results[0].Data)
+// 	}
+// }
 
-func TestStatus(t *testing.T) {
-	path := tempPath(t)
-	defer func() { _ = os.Remove(path) }()
-	k, newErr := NewKeychain(path, "testkeychainpassword")
-	if newErr != nil {
-		t.Fatal(newErr)
-	}
+// func TestStatus(t *testing.T) {
+// 	path := tempPath(t)
+// 	defer func() { _ = os.Remove(path) }()
+// 	k, newErr := NewKeychain(path, "testkeychainpassword")
+// 	if newErr != nil {
+// 		t.Fatal(newErr)
+// 	}
 
-	if err := k.Status(); err != nil {
-		t.Fatal(err)
-	}
+// 	if err := k.Status(); err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	nonexistent := NewWithPath(fmt.Sprintf("this_shouldnt_exist_%s", time.Now()))
-	if err := nonexistent.Status(); err != ErrorNoSuchKeychain {
-		t.Fatalf("Expected %v, get %v", ErrorNoSuchKeychain, err)
-	}
-}
+// 	nonexistent := NewWithPath(fmt.Sprintf("this_shouldnt_exist_%s", time.Now()))
+// 	if err := nonexistent.Status(); err != ErrorNoSuchKeychain {
+// 		t.Fatalf("Expected %v, get %v", ErrorNoSuchKeychain, err)
+// 	}
+// }
